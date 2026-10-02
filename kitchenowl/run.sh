@@ -21,12 +21,7 @@ export JWT_SECRET_KEY="$JWT_SECRET"
 export STORAGE_PATH="/data"
 export DEBUG="False"
 
-# Check if ingress is being used
-INGRESS_ENTRY=$(bashio::addon.ingress_entry)
-if bashio::var.has_value "${INGRESS_ENTRY}"; then
-    bashio::log.info "Patching KitchenOwl for ingress support..."
-    /patch-ingress.sh "${INGRESS_ENTRY}"
-fi
+
 
 bashio::log.info "Starting KitchenOwl..."
 bashio::log.info "Data directory: /data"
