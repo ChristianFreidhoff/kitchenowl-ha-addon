@@ -20,7 +20,7 @@ fi
 cp "${INDEX_FILE}.original" "${INDEX_FILE}"
 
 # Update base href
-sed -i "s|<base href=\"/\">|<base href=\"${INGRESS_ENTRY}/\">|g" "${INDEX_FILE}"
+sed -i "s|<base href=\"/\">|<base href=\"/${INGRESS_ENTRY}/\">|g" "${INDEX_FILE}"
 
 # Update script and link references to be relative
 sed -i 's|src="/|src="|g' "${INDEX_FILE}"
