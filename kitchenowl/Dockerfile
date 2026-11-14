@@ -1,4 +1,4 @@
-FROM tombursch/kitchenowl:latest
+FROM tombursch/kitchenowl:v0.8.1
 
 # Install Home Assistant add-on dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
