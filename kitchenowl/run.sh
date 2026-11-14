@@ -30,9 +30,23 @@ bashio::log.info "Data directory: /data"
 # The official image uses HTTP on port 8080
 cd /usr/src/kitchenowl
 
-bashio::log.info "Database file search:"
-find /data -maxdepth 3 -type f \
-  \( -name "*.db" -o -name "*.sqlite" -o -name "*.sqlite3" \) \
-  -print
+bashio::log.info "KitchenOwl database tables:"
 
+python3 - <<'PY'
+import sqlite3
+
+db = sqlite3.connect("file:/data/database.db?mode=ro", uri=True)
+
+tables = db.execute("""
+    SELECT name
+    FROM sqlite_master
+    WHERE type = 'table'
+    ORDER BY name
+""").fetchall()
+
+for (table,) in tables:
+    print(table, flush=True)
+
+db.close()
+PY
 exec ./entrypoint.sh --ini wsgi.ini:web --gevent 200 --max-fd 1048576
