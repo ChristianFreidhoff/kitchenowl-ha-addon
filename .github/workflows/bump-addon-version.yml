@@ -1,0 +1,61 @@
+
+name: Bump KitchenOwl Add-on Version
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'kitchenowl/Dockerfile'
+
+permissions:
+  contents: write
+
+jobs:
+  bump-version:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Dependabot branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bump patch version
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          path = Path("kitchenowl/config.yaml")
+          content = path.read_text()
+
+          def bump(match):
+              prefix, major, minor, patch, suffix = match.groups()
+              return f"{prefix}{major}.{minor}.{int(patch)+1}{suffix}"
+
+          updated, count = re.subn(
+              r'^(version:\s*["\']?)(\d+)\.(\d+)\.(\d+)(["\']?)$',
+              bump,
+              content,
+              count=1,
+              flags=re.MULTILINE
+          )
+
+          if count != 1:
+              raise SystemExit("Could not find numeric add-on version")
+
+          path.write_text(updated)
+          PY
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add kitchenowl/config.yaml
+          if ! git diff --cached --quiet; then
+            git commit -m "Bump KitchenOwl add-on version"
+            git push
+          fi
