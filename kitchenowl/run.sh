@@ -30,7 +30,7 @@ bashio::log.info "Data directory: /data"
 # The official image uses HTTP on port 8080
 cd /usr/src/kitchenowl
 
-bashio::log.info "KitchenOwl user table columns:"
+bashio::log.info "KitchenOwl registered users:"
 
 python3 - <<'PY'
 import sqlite3
@@ -40,12 +40,19 @@ db = sqlite3.connect(
     uri=True
 )
 
-columns = db.execute(
-    'PRAGMA table_info("user")'
-).fetchall()
+users = db.execute("""
+    SELECT id, username, email, admin
+    FROM "user"
+""").fetchall()
 
-for column in columns:
-    print(column[1], flush=True)
+for user in users:
+    print(
+        f"ID: {user[0]} | "
+        f"Username: {user[1]} | "
+        f"Email: {user[2]} | "
+        f"Admin: {user[3]}",
+        flush=True
+    )
 
 db.close()
 PY
