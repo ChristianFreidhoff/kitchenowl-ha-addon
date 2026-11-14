@@ -2,6 +2,7 @@
 name: Bump KitchenOwl Add-on Version
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
