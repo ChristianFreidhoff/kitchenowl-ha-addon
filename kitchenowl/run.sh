@@ -30,30 +30,5 @@ bashio::log.info "Data directory: /data"
 # The official image uses HTTP on port 8080
 cd /usr/src/kitchenowl
 
-bashio::log.info "KitchenOwl registered users:"
 
-python3 - <<'PY'
-import sqlite3
-
-db = sqlite3.connect(
-    "file:/data/database.db?mode=ro",
-    uri=True
-)
-
-users = db.execute("""
-    SELECT id, username, email, admin
-    FROM "user"
-""").fetchall()
-
-for user in users:
-    print(
-        f"ID: {user[0]} | "
-        f"Username: {user[1]} | "
-        f"Email: {user[2]} | "
-        f"Admin: {user[3]}",
-        flush=True
-    )
-
-db.close()
-PY
 exec ./entrypoint.sh --ini wsgi.ini:web --gevent 200 --max-fd 1048576
