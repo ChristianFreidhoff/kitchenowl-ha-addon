@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   check-upstream:
@@ -25,13 +26,84 @@ jobs:
           git fetch upstream main
 
       - name: Check for upstream changes
+        id: check
+        shell: bash
         run: |
           COUNT=$(git rev-list --count HEAD..upstream/main)
-          echo "Upstream commits not yet in fork: $COUNT"
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
 
-          if [ "$COUNT" -gt 0 ]; then
-            echo "::warning::Upstream has $COUNT new commit(s). Review upstream changes."
+          echo "Upstream commits not yet in fork: $COUNT"
+          git log --oneline HEAD..upstream/main
+
+      - name: Create or update notification issue
+        if: steps.check.outputs.count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          COUNT: ${{ steps.check.outputs.count }}
+        shell: bash
+        run: |
+          TITLE="KitchenOwl: Upstream updates available"
+          MARKER="<!-- kitchenowl-upstream-monitor -->"
+
+          ISSUE=$(gh issue list \
+            --repo "$REPO" \
+            --state open \
+            --limit 100 \
+            --json number,body \
+            --jq ".[] | select(.body | contains(\"$MARKER\")) | .number" \
+            | head -n 1)
+
+          {
+            echo "$MARKER"
+            echo "## Upstream updates detected"
+            echo
+            echo "**$COUNT new commit(s)** in meijer3/kitchenowl-ha-addon."
+            echo
+            echo "Review the changes before merging."
+            echo
+            echo "Upstream repository:"
+            echo "https://github.com/meijer3/kitchenowl-ha-addon"
+            echo
+            echo "Compare changes:"
+            echo "https://github.com/meijer3/kitchenowl-ha-addon/compare"
+            echo
+            echo "### Missing commits"
+            echo '```'
             git log --oneline HEAD..upstream/main
+            echo '```'
+            echo
+            echo "Do not overwrite custom run.sh changes."
+          } > /tmp/upstream-issue.md
+
+          if [ -z "$ISSUE" ]; then
+            gh issue create \
+              --repo "$REPO" \
+              --title "$TITLE" \
+              --body-file /tmp/upstream-issue.md
           else
-            echo "Fork is up to date with upstream."
+            gh issue edit "$ISSUE" \
+              --repo "$REPO" \
+              --body-file /tmp/upstream-issue.md
           fi
+
+      - name: Close resolved notification issue
+        if: steps.check.outputs.count == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          MARKER="<!-- kitchenowl-upstream-monitor -->"
+
+          gh issue list \
+            --repo "$REPO" \
+            --state open \
+            --limit 100 \
+            --json number,body \
+            --jq ".[] | select(.body | contains(\"$MARKER\")) | .number" \
+          | while read -r ISSUE; do
+              gh issue close "$ISSUE" \
+                --repo "$REPO" \
+                --comment "Fork is up to date with upstream."
+            done
