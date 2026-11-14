@@ -29,4 +29,10 @@ bashio::log.info "Data directory: /data"
 # Run the official KitchenOwl entrypoint with default uWSGI arguments
 # The official image uses HTTP on port 8080
 cd /usr/src/kitchenowl
+
+bashio::log.info "Database file search:"
+find /data -maxdepth 3 -type f \
+  \( -name "*.db" -o -name "*.sqlite" -o -name "*.sqlite3" \) \
+  -print
+
 exec ./entrypoint.sh --ini wsgi.ini:web --gevent 200 --max-fd 1048576
