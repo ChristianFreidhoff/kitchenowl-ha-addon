@@ -2,8 +2,9 @@
 name: Bump KitchenOwl Add-on Version
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
     paths:
       - 'kitchenowl/Dockerfile'
 
@@ -12,16 +13,11 @@ permissions:
 
 jobs:
   bump-version:
-    if: github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Dependabot branch
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Bump patch version
         run: |
@@ -32,12 +28,14 @@ jobs:
           path = Path("kitchenowl/config.yaml")
           content = path.read_text()
 
+          pattern = r'^(version:\s*["\']?)(\d+)\.(\d+)\.(\d+)(["\']?)$'
+
           def bump(match):
               prefix, major, minor, patch, suffix = match.groups()
-              return f"{prefix}{major}.{minor}.{int(patch)+1}{suffix}"
+              return f"{prefix}{major}.{minor}.{int(patch) + 1}{suffix}"
 
           updated, count = re.subn(
-              r'^(version:\s*["\']?)(\d+)\.(\d+)\.(\d+)(["\']?)$',
+              pattern,
               bump,
               content,
               count=1,
@@ -45,12 +43,12 @@ jobs:
           )
 
           if count != 1:
-              raise SystemExit("Could not find numeric add-on version")
+              raise SystemExit("Version not found")
 
           path.write_text(updated)
           PY
 
-      - name: Commit version bump
+      - name: Commit updated version
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
